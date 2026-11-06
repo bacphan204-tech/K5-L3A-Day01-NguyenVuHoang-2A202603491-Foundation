@@ -15,14 +15,45 @@
 | [`hand_calc.jpg`](hand_calc.jpg) — ảnh tính tay có các bước | có |
 
 ## 2. Kết quả chính
+SEED=4436 · thử thách #3
+Bộ kiểm tra: 14/15 đạt
+  ✅ 1.1 vectorize
+  ✅ 1.2 sigmoid / predict_proba
+  ✅ 1.3 train_logreg
+  ✅ 1.4 metrics
+  ✅ 2.1 build_mlp
+  ✅ 2.2 train_mlp
+  ✅ 3.1–3.2 cosine / top_k_similar
+  ✅ 3.3 knn_predict
+  ✅ 4.2–4.3 prompt / parse_label
+  ✅ 4.1 + 4.4 call_openai / llm_classify_batch
+  ✅ tính tay: baseline_accuracy
+  ✅ tính tay: sigmoid_0
+  ✅ tính tay: f1_example
+  ✅ tính tay: cosine_example
+  ✅ tính tay: llm_cost_per_day
 
-Mô hình	F1 test	F1 SUB 40	Train (s)	Tin/s (cả lô)	p95 (ms/tin)	USD/1k tin
-1. BoW + Logistic Regression	0.892	0.788	6.45	29000.9	0.088	0.00
-2. BoW + MLP	0.935	0.947	8.55	45508.2	0.360	0.00
-3a. Encoder (MiniLM) + kNN	0.879	0.947	94.84	25.6	66.807	0.00
-3b. Encoder (MiniLM) + LogReg	0.929	0.974	95.28	29.9	40.529	0.00
-3c. Encoder (MiniLM) + MLP head	0.923	0.947	95.85	29.6	39.617	0.00
-4a–4c. LLM zero-shot/few-shot	Chưa có kết quả hoàn chỉnh	—	—	—	—	—
+Dự đoán đã ghi:
+  [14:58:05] ml_f1: F1 khoảng 0.8, precision sẽ cao hơn recall vì mô hình lọc spam khá thận trọng có thể bỏ sót spam 
+  [14:58:15] ml_lr:  0.001 làm cho loss giảm rất chậm, 50 thì loss dao động mạnh hoặc tăng  
+  [14:58:52] dl_curve:  loss sẽ giảm dần còn val thì không chắc, vì có thể bị quá tải. MLP có thể ngang bằng hoặc chỉ hơn một chút so với lr ở phần 1 về F1 
+  [14:59:19] dl_relu:  nếu xóa nn.ReLU mạng 2 lớp Linear tương đương với 1 lớp Linear , F1 có thể sẽ giảm so với MLP và ReLU, gần với lr.
+  [15:02:27] emb_search:  khả năng cao kết quả là spam vì dù k chứa key words nhưng nội dung vẫn mang tính spam nhận thưởng giống dạng chứa key words
+  [15:03:57] emb_tricky:  Mô hình Encoder + LogReg sẽ dự đoán đúng nhiều vì nó sẽ phân tích và hiểu ngữ cảnh của tin để phân loại chứ không dựa vào từ khóa như BoW, it bỏ sót tin né spam và k nhầm lẫn tin ham có chứa key spam 
+  [15:04:38] llm_models: Dự đoán model lớn có F1 cao hơn model nhỏ khoảng 0.02 Theo bảng giá trong notebook, model lớn có thể đắt khoảng 10 lần model nhỏ. LLM sẽ có kết quả tương đương hoặc nhỉnh hơn một chút so với Encoder + Logistic Regression (3b), nhưng chưa chắc thắng rõ rệt.
+  [15:04:38] llm_fewshot: F1 có thể tăng nhẹ hoặc giữ nguyên vì AI được cung câos thêm train nhưng chi phí lại tăng từ 1,5 đến 3 lần .
+  [15:04:38] tradeoff:  dự đoán BoW + Logistic Regression và Embedding + Logistic Regression sẽ nằm trên đường Pareto vì có sự cân bằng tốt giữa F1 và độ trễ. BoW + MLP có thể nằm ngoài đường Pareto vì xử lý chậm hơn nhưng chưa chắc đạt F1 cao hơn Logistic Regression. LLM cũng có thể nằm ngoài nếu độ trễ cao mà F1 không vượt trội.
+  [15:04:39] hard_eval:  dự đoán F1 của các mô hình sẽ giảm khoảng 5–15 điểm phần trăm so với tập test thông thường vì 50 tin này được thiết kế để gây nhầm lẫn.BoW + Logistic Regression có thể giảm nhiều nhất do phụ thuộc vào từ khóa. Encoder + Logistic Regression có thể hoạt động tốt hơn nhờ hiểu ngữ nghĩa, nhưng vẫn có thể sai ở các trường hợp mơ hồ.)
+Thiếu dự đoán: không
+
+                                     f1  f1_SUB
+1. BoW + LogReg (tự code)        0.892   0.788
+2. BoW + MLP (deep learning)     0.935   0.947
+3a. Encoder (MiniLM) + kNN       0.879   0.947
+3b. Encoder (MiniLM) + LogReg    0.929   0.974
+3c. Encoder (MiniLM) + MLP head  0.923   0.947
+
+💾 Đã lưu lab1_report.json (chỉ chứa SEED, không chứa MSSV)
 
 
 BoW + MLP có F1 test toàn bộ cao nhất (0.935), p95 rất thấp (0.360 ms) và tốc độ xử lý cả lô cao. Encoder + LogReg có F1 cao nhất trên SUB (0.974), nhưng chạy chậm hơn và p95 gần ngưỡng 50 ms. Thử nghiệm LLM gặp lỗi giới hạn số lượt API (429), nên tôi không ghi số F1 hoặc thời gian không có trong kết quả cuối.
